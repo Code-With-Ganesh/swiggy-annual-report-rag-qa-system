@@ -65,6 +65,19 @@ st.divider()
 
 # sidebar
 with st.sidebar:
+    st.markdown("### � Sample Questions")
+    samples = [
+        "What was Swiggy's total revenue in FY 2023-24?",
+        "Who is the CEO of Swiggy?",
+        "Who are the board members of Swiggy?",
+        "What are Swiggy's key subsidiaries?",
+        "What is Swiggy Instamart?",
+    ]
+    for q in samples:
+        if st.button(q, key=q, use_container_width=True):
+            st.session_state["prefill_question"] = q
+
+    st.divider()
     st.markdown("### 🔍 About This System")
     st.markdown(
         "A **RAG-based QA system** that answers questions from the "
@@ -91,19 +104,6 @@ with st.sidebar:
     st.divider()
     top_k = st.slider("Chunks to retrieve", min_value=3, max_value=10, value=5)
     show_context = st.checkbox("Show supporting context", value=True)
-
-    st.divider()
-    st.markdown("### 💡 Sample Questions")
-    samples = [
-        "What was Swiggy's total revenue in FY 2023-24?",
-        "Who is the CEO of Swiggy?",
-        "Who are the board members of Swiggy?",
-        "What are Swiggy's key subsidiaries?",
-        "What is Swiggy Instamart?",
-    ]
-    for q in samples:
-        if st.button(q, key=q, use_container_width=True):
-            st.session_state["prefill_question"] = q
 
 # check if index is built
 if not index_exists("vector_db"):

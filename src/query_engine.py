@@ -2,6 +2,10 @@
 
 import os, sys, time
 import numpy as np
+from dotenv import load_dotenv
+
+# load .env from project root
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 
@@ -11,8 +15,8 @@ from vector_store import load_from_disk, find_similar
 from google import genai
 from google.genai import errors as genai_errors
 
-# api key
-API_KEY = "AIzaSyCATcio5AonF79jByj44ic-ddXZhx-HMbk"
+# read key from environment
+API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 RETRY_DELAY = 3
 
