@@ -33,3 +33,5 @@ build/
 # Terraform local artifacts
 terraform/.terraform/
 **/.terraform/
+*.tfstate
+*.tfstate.*
