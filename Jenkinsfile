@@ -41,7 +41,7 @@ pipeline {
     stage('Security Scan - Secure Terraform') {
       steps {
         dir('terraform') {
-          sh 'trivy config --severity HIGH,CRITICAL --exit-code 1 --format table .'
+          sh 'trivy config --skip-dirs insecure --severity HIGH,CRITICAL --exit-code 1 --format table .'
         }
       }
     }

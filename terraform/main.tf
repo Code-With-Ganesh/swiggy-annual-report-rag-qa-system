@@ -21,7 +21,7 @@ resource "aws_vpc" "main" {
 resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.20.1.0/24"
-  map_public_ip_on_launch = true
+  map_public_ip_on_launch = false
 
   tags = {
     Name = "${var.project_name}-public-subnet"
@@ -76,10 +76,11 @@ resource "aws_security_group" "web_sg" {
   }
 
   egress {
+    description = "Allow east-west traffic only inside VPC"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [aws_vpc.main.cidr_block]
   }
 
   tags = {
@@ -98,6 +99,10 @@ resource "aws_instance" "web" {
     encrypted   = true
     volume_type = "gp3"
     volume_size = 16
+  }
+
+  metadata_options {
+    http_tokens = "required"
   }
 
   tags = {
