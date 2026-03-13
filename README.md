@@ -1,122 +1,218 @@
-# Swiggy Annual Report QA System
+# DevOps Assignment - Secure Infrastructure Pipeline (GET 2026)
 
-RAG-based question answering system for the **Swiggy Annual Report FY 2023-24**. Extracts text from a 170-page PDF (including scanned pages via OCR), builds a vector search index, and uses Google Gemini to answer questions with page citations.
+This repository demonstrates a complete DevOps workflow for a Python web application:
 
-## How it Works
+1. Containerize a web app using Docker.
+2. Provision cloud infrastructure using Terraform (AWS).
+3. Build a Jenkins CI pipeline that performs infrastructure security scanning using Trivy.
+4. Use AI-assisted remediation guidance to fix Terraform security issues.
 
-```
-PDF (170 pages)
-    |
-    v
-PDF Loader (PyMuPDF + Tesseract OCR)
-    |
-    v
-Text Chunker (overlapping word chunks)
-    |
-    v
-Embeddings (sentence-transformers, all-MiniLM-L6-v2, 384-dim)
-    |
-    v
-FAISS Index (saved to disk)
-    |
-    v  (query time)
-Semantic Search -> Top-K chunks
-    |
-    v
-Prompt + Anti-hallucination instructions
-    |
-    v
-Google Gemini -> Answer with page citations
-```
+## Project Overview
 
-## Tech Stack
+The application is a Streamlit-based question-answering app (`app.py`).
 
-- **PDF extraction:** PyMuPDF + Tesseract OCR (for scanned pages)
-- **Embeddings:** sentence-transformers (`all-MiniLM-L6-v2`)
-- **Vector DB:** FAISS (L2 distance)
-- **LLM:** Google Gemini (with model fallback)
-- **Frontend:** Streamlit
-- **Language:** Python 3.10+
+For the assignment, the main focus is secure-by-default infrastructure automation:
 
-## Files
+- `terraform/insecure/main.tf`: intentionally vulnerable IaC baseline (for failing security scan).
+- `terraform/main.tf`: secured IaC implementation (for passing security scan).
+- `Jenkinsfile`: CI pipeline with scan, AI analysis log, and Terraform plan stage.
 
-```
-project/
-├── data/
-│   └── Swiggy Annual-Report-FY-2023-24.pdf
-├── src/
-│   ├── pdf_loader.py      - text extraction + OCR
-│   ├── text_chunker.py    - cleaning & chunking
-│   ├── embeddings.py      - vector embeddings
-│   ├── vector_store.py    - FAISS index ops
-│   ├── rag_pipeline.py    - pipeline orchestration
-│   └── query_engine.py    - QA with Gemini
-├── vector_db/             - saved FAISS index (auto-generated)
-├── app.py                 - Streamlit web UI
-├── main.py                - CLI entry point
-├── evaluation.ipynb       - step-by-step pipeline demo
-├── requirements.txt
-└── README.md
+## Architecture
+
+```text
+Developer Push
+   |
+   v
+Jenkins Pipeline (Docker)
+   |
+   +--> Stage 1: Checkout source code
+   |
+   +--> Stage 2A: Trivy scan on insecure Terraform (expected fail/unstable)
+   |
+   +--> Stage 2B: AI analysis of Trivy report + remediation recommendations
+   |
+   +--> Stage 2C: Trivy scan on secure Terraform (expected pass)
+   |
+   +--> Stage 3: Terraform plan (optional, requires AWS credentials)
+   |
+   v
+AWS Infrastructure (VPC + Subnet + SG + EC2)
 ```
 
-## Setup
+## Cloud Provider Used
 
-**Prerequisites:**
-- Python 3.10+
-- Tesseract OCR ([download here](https://github.com/UB-Mannheim/tesseract/wiki) for Windows)
-- Google Gemini API key ([get one here](https://aistudio.google.com/apikey))
+- AWS (Terraform AWS Provider)
 
-**Install:**
+## Tools and Technologies
+
+- Python, Streamlit
+- Docker, Docker Compose
+- Jenkins (Pipeline as Code)
+- Terraform
+- Trivy (IaC misconfiguration scanner)
+- AI-assisted security analysis (`scripts/ai_remediate.py`)
+
+## Repository Structure
+
+```text
+.
+├── Dockerfile
+├── docker-compose.yml
+├── Jenkinsfile
+├── jenkins/
+│   ├── Dockerfile
+│   └── plugins.txt
+├── scripts/
+│   └── ai_remediate.py
+├── terraform/
+│   ├── main.tf              # secure final code
+│   ├── variables.tf
+│   ├── versions.tf
+│   ├── outputs.tf
+│   └── insecure/
+│       └── main.tf          # intentionally vulnerable code
+└── app.py
+```
+
+## Requirement Mapping
+
+### 1) Web Application + Docker
+
+Implemented:
+
+- `Dockerfile` for Streamlit app.
+- `docker-compose.yml` for app + Jenkins.
+
+Run locally:
+
 ```bash
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
+docker compose up --build app
 ```
 
-Put the PDF in `data/` folder.
+App URL: `http://localhost:8501`
 
-**Run CLI:**
+### 2) Infrastructure as Code (Terraform)
+
+Provisioned resources:
+
+- VPC
+- Public Subnet
+- Internet Gateway + Route Table
+- Security Group
+- EC2 instance (compute)
+
+Intentional vulnerability included in `terraform/insecure/main.tf`:
+
+- SSH (22) open to `0.0.0.0/0`
+- Public management port `8080` open to `0.0.0.0/0`
+- Unencrypted root volume (`encrypted = false`)
+
+Secured version in `terraform/main.tf`:
+
+- SSH restricted to `allowed_ssh_cidr`
+- Public management port removed
+- Root volume encryption enabled
+
+### 3) Jenkins Pipeline (CI/CD)
+
+Run Jenkins:
+
 ```bash
-python main.py
+docker compose up --build jenkins
 ```
 
-**Run Web UI:**
+Jenkins URL: `http://localhost:8080`
+
+Pipeline stages in `Jenkinsfile`:
+
+1. Checkout
+2. Infrastructure Security Scan - Insecure Baseline (Trivy)
+3. AI Risk Analysis + Remediation Suggestions
+4. Security Scan - Secure Terraform (Trivy)
+5. Terraform Plan (optional, parameter-driven)
+
+### 4) AI-Driven Security Remediation
+
+The AI remediation stage uses `scripts/ai_remediate.py` to:
+
+- Parse Trivy JSON output from insecure scan.
+- Summarize HIGH/CRITICAL findings.
+- Explain risks in plain language.
+- Print remediation recommendations.
+
+After remediation (secure Terraform), pipeline re-scan should pass with no HIGH/CRITICAL issues.
+
+## Before and After Security Report
+
+### Before (Expected Fail/Warnings)
+
+- Source scanned: `terraform/insecure/main.tf`
+- Result: HIGH/CRITICAL findings present
+
+### After (Expected Pass)
+
+- Source scanned: `terraform/main.tf`
+- Result: zero HIGH/CRITICAL findings
+
+## AI Usage Log (Mandatory)
+
+### Exact AI Prompt Used
+
+```text
+You are a cloud security engineer. Analyze this Trivy Terraform scan JSON and produce:
+1) A summary of high/critical risks.
+2) A plain-English explanation of impact.
+3) Concrete Terraform code changes to remediate.
+4) A secure final version aligned to least privilege and encryption-by-default.
+```
+
+### Summary of Identified Risks
+
+- Internet-exposed SSH (`0.0.0.0/0`) increases brute-force and unauthorized access risk.
+- Publicly exposed management port broadens attack surface.
+- Unencrypted root volume risks data exposure at rest.
+
+### How AI-Recommended Changes Improved Security
+
+- Implemented least-privilege inbound network rules.
+- Removed unnecessary public management access.
+- Enforced disk encryption by default.
+- Added Terraform variable validation preventing unsafe SSH CIDR default.
+
+## Terraform Commands (Manual)
+
+Secure stack:
+
 ```bash
-streamlit run app.py
+cd terraform
+terraform init
+terraform validate
+terraform plan -var="allowed_ssh_cidr=<YOUR_PUBLIC_IP>/32"
 ```
 
-First run takes a few minutes (OCR on ~140 scanned pages). After that the index is cached and startup is fast.
+## Required Screenshots Checklist
 
-## Anti-Hallucination
+Add these to your submission repository:
 
-The system is designed to not make stuff up:
-- The prompt tells Gemini to ONLY use the retrieved context
-- If the answer isn't in the document, it says "I don't know based on the document."
-- Answers include page numbers so you can verify
-- Only top-K relevant chunks go to the LLM
+1. Jenkins pipeline with initial failing/unstable scan on insecure Terraform.
+2. Jenkins console showing Trivy vulnerability report.
+3. Jenkins pipeline successful run after secure re-scan.
+4. Application running on cloud public IP/domain.
 
-## Example Outputs
+## Video Recording Checklist (5-10 mins)
 
-**Q: What was Swiggy's total revenue in FY 2023-24?**
-> Swiggy's total revenue from operations in FY 2023-24 was **₹1,12,473.90 Million** (Page 151).
-> Sources: 46, 83, 151, 152, 153
+Show in sequence:
 
-**Q: Who is the CEO of Swiggy?**
-> **Sriharsha Majety** is the Managing Director and Group CEO (Page 159).
-> Sources: 1, 51, 145, 159, 170
+1. Dockerized app running locally.
+2. Jenkins pipeline execution.
+3. Trivy insecure findings and AI remediation analysis in console.
+4. Secure re-scan pass result.
+5. Terraform plan/deployment.
+6. Application accessible on cloud public IP/domain.
 
-**Q: What was Swiggy's total loss in FY24?**
-> Loss for FY24 was **(₹23,502.43) Million** (Page 112, 154).
-> Sources: 8, 86, 112, 154, 170
+Add the video link in this README under a section named `Demo Video` before submission.
 
-**Q: What are the key subsidiaries of Swiggy?**
-> Scootsy Logistics, Supr Infotech Solutions, and Lynks Logistics (Page 116).
-> Sources: 51, 92, 116, 145, 170
+## Notes
 
-**Q: What was Swiggy's revenue in FY 2025?** *(hallucination test)*
-> I don't know based on the document.
-> *(Correct — FY 2025 data is not in the report)*
-
-**Q: How many monthly transacting users does Swiggy have?**
-> Approximately **14 million** average monthly transacting users in FY24 (Page 8).
-> Sources: 8, 51, 83, 108, 170
+- `RUN_TERRAFORM_PLAN` pipeline parameter is `false` by default because plan requires valid AWS credentials.
+- To run plan in Jenkins, configure AWS credentials in Jenkins environment and set `RUN_TERRAFORM_PLAN=true`.
