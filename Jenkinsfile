@@ -52,9 +52,13 @@ pipeline {
       }
       steps {
         dir('terraform') {
-          sh 'terraform init -backend=false'
-          sh 'terraform validate'
-          sh 'terraform plan -input=false -lock=false -var="allowed_ssh_cidr=${ADMIN_CIDR}"'
+          withCredentials([usernamePassword(credentialsId: 'aws-creds', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+            withEnv(["AWS_DEFAULT_REGION=us-east-1", "AWS_REGION=us-east-1"]) {
+              sh 'terraform init -backend=false'
+              sh 'terraform validate'
+              sh 'terraform plan -input=false -lock=false -var="allowed_ssh_cidr=${ADMIN_CIDR}"'
+            }
+          }
         }
       }
     }
