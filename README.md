@@ -199,6 +199,28 @@ Add these to your submission repository:
 3. Jenkins pipeline successful run after secure re-scan.
 4. Application running on cloud public IP/domain.
 
+## Evidence Screenshots
+
+Captured in this repository:
+
+1. Insecure Trivy findings (HIGH/CRITICAL):
+![Insecure Trivy Findings](Screenshots/01-insecure-trivy-findings.png)
+
+2. AI remediation analysis log in Jenkins console:
+![AI Security Analysis Log](Screenshots/02-ai-security-analysis-log.png)
+
+3. Secure Terraform scan pass (0 findings):
+![Secure Trivy Pass](Screenshots/03-secure-trivy-pass.png)
+
+4. Terraform plan output:
+![Terraform Plan Output](Screenshots/04-terraform-plan-output.png)
+
+5. Overall Jenkins pipeline stage view:
+![Jenkins Pipeline Stage View](Screenshots/05-jenkins-pipeline-stage-view.png)
+
+6. Application running on cloud public IP/domain:
+![App On Cloud Public IP](Screenshots/06-app-on-cloud-public-ip.png)
+
 ## Video Recording Checklist (5-10 mins)
 
 Show in sequence:
