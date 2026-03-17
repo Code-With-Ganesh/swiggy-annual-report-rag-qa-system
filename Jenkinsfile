@@ -18,26 +18,6 @@ pipeline {
       }
     }
 
-    stage('Infrastructure Security Scan - Insecure Baseline') {
-      steps {
-        dir('terraform/insecure') {
-          script {
-            // Keep pipeline moving to AI analysis while still surfacing a failing scan.
-            catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-              sh 'trivy config --severity HIGH,CRITICAL --exit-code 1 --format json --output trivy-insecure-report.json .'
-            }
-            sh 'trivy config --severity HIGH,CRITICAL . || true'
-          }
-        }
-      }
-    }
-
-    stage('AI Risk Analysis + Remediation Suggestions') {
-      steps {
-        sh 'python3 scripts/ai_remediate.py --report terraform/insecure/trivy-insecure-report.json --secure-file terraform/main.tf --insecure-file terraform/insecure/main.tf'
-      }
-    }
-
     stage('Security Scan - Secure Terraform') {
       steps {
         dir('terraform') {
@@ -65,14 +45,11 @@ pipeline {
   }
 
   post {
-    always {
-      archiveArtifacts artifacts: 'terraform/insecure/trivy-insecure-report.json', allowEmptyArchive: true
-    }
     success {
       echo 'Pipeline completed successfully. Secure Terraform scan has zero critical/high findings.'
     }
-    unstable {
-      echo 'Pipeline is unstable because insecure baseline scan found vulnerabilities (expected in pre-remediation stage).'
+    failure {
+      echo 'Pipeline failed because secure Terraform scan and/or plan did not pass.'
     }
   }
 }
