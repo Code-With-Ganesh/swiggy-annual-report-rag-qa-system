@@ -32,7 +32,7 @@ resource "aws_vpc" "main" {
 resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.10.1.0/24"
-  map_public_ip_on_launch = true
+  map_public_ip_on_launch = false
 }
 
 resource "aws_internet_gateway" "igw" {
@@ -53,32 +53,24 @@ resource "aws_route_table_association" "public_assoc" {
   route_table_id = aws_route_table.public.id
 }
 
-# Intentionally insecure security group for initial failing scan.
 resource "aws_security_group" "insecure_web_sg" {
   name   = "swiggy-insecure-sg"
   vpc_id = aws_vpc.main.id
 
   ingress {
-    description = "SSH open to entire internet"
+    description = "Restricted SSH access"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "App management port exposed"
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["115.242.82.234/32"]
   }
 
   egress {
+    description = "Allow east-west traffic only inside VPC"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [aws_vpc.main.cidr_block]
   }
 }
 
@@ -87,11 +79,15 @@ resource "aws_instance" "insecure_web" {
   instance_type               = "t3.micro"
   subnet_id                   = aws_subnet.public.id
   vpc_security_group_ids      = [aws_security_group.insecure_web_sg.id]
-  associate_public_ip_address = true
+  associate_public_ip_address = false
 
   root_block_device {
-    encrypted   = false
-    volume_type = "gp2"
-    volume_size = 8
+    encrypted   = true
+    volume_type = "gp3"
+    volume_size = 16
+  }
+
+  metadata_options {
+    http_tokens = "required"
   }
 }
