@@ -1,4 +1,4 @@
-# DevOps Assignment - Secure Infrastructure Pipeline (GET 2026)
+# DevOps Assignment - Secure Infrastructure Pipeline 
 
 This repository demonstrates a complete DevOps workflow for a Python web application:
 
